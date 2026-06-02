@@ -2,48 +2,109 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
-  line-height: 1.5;
-  color: #1a1a2e;
   background: #f4f6fb;
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.auth-wrapper {
+/* ── Login page ── */
+.page-wrapper {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
 }
 
-.auth-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  padding: 2.5rem 2rem;
+.login-box {
+  display: flex;
   width: 100%;
-  max-width: 400px;
+  max-width: 860px;
+  min-height: 520px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.12);
 }
 
-.auth-logo {
-  font-size: 1.75rem;
+/* ── Left panel ── */
+.left-panel {
+  flex: 1;
+  background: #4f46e5;
+  color: #fff;
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  clip-path: ellipse(110% 100% at 0% 50%);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  margin-bottom: 2rem;
+  width: fit-content;
+}
+
+.brand {
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #4f46e5;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
+  margin-bottom: 0.75rem;
 }
 
-.auth-sub {
+.tagline {
+  font-size: 0.92rem;
+  opacity: 0.85;
+  line-height: 1.7;
+  max-width: 260px;
+  margin-bottom: 2rem;
+}
+
+.features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  opacity: 0.9;
+}
+
+/* ── Right panel ── */
+.right-panel {
+  flex: 1;
+  background: #fff;
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 0.3rem;
+}
+
+.form-sub {
+  font-size: 0.88rem;
   color: #6b7280;
   margin-bottom: 2rem;
-  font-size: 0.9rem;
 }
 
-.field { margin-bottom: 1.25rem; }
+.field { margin-bottom: 1.1rem; }
 
 .field label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #374151;
   margin-bottom: 0.4rem;
@@ -52,48 +113,57 @@ body {
 .field input {
   width: 100%;
   padding: 0.65rem 0.9rem;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid #e5e7eb;
   border-radius: 8px;
-  font-size: 0.95rem;
-  transition: border-color 0.15s;
+  font-size: 0.92rem;
   outline: none;
+  transition: border-color 0.15s;
+  background: #fafafa;
 }
 
 .field input:focus {
   border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
 }
 
 .error-msg {
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fecaca;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.6rem 0.9rem;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   margin-bottom: 1rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
+.btn-signin {
+  width: 100%;
+  padding: 0.75rem;
+  background: #4f46e5;
+  color: #fff;
   border: none;
-  transition: background 0.15s, opacity 0.15s;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
 }
 
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-primary { background: #4f46e5; color: #fff; }
-.btn-primary:hover:not(:disabled) { background: #4338ca; }
-.btn-ghost { background: transparent; color: #4f46e5; }
-.btn-ghost:hover { background: #f0f0ff; }
-.btn-full { width: 100%; margin-top: 0.5rem; padding: 0.75rem; }
+.btn-signin:hover { background: #4338ca; }
+.btn-signin:disabled { opacity: 0.6; cursor: not-allowed; }
 
+.hint {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-top: 1.2rem;
+  text-align: center;
+}
+
+.hint span { color: #4f46e5; font-weight: 500; }
+
+/* ── Dashboard topbar ── */
 .topbar {
   display: flex;
   align-items: center;
@@ -105,6 +175,18 @@ body {
 }
 
 .topbar-logo { font-size: 1.2rem; font-weight: 700; color: #4f46e5; }
+
+.btn-ghost {
+  background: transparent;
+  color: #4f46e5;
+  border: 1.5px solid #e5e7eb;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.btn-ghost:hover { background: #f0f0ff; }
 
 .main-content { padding: 2rem 1.5rem; }
 .main-content h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.5rem; }
