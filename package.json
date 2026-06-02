@@ -1,0 +1,16 @@
+{
+  "name": "deskhub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "api": "json-server --watch db.json --port 3001 --delay 200",
+    "serve": "live-server public --port=8080 --no-browser",
+    "dev": "concurrently --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"npm:api\" \"npm:serve\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "json-server": "^0.17.4",
+    "live-server": "^1.2.2"
+  }
+}

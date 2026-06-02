@@ -1,0 +1,11 @@
+{
+  "users": [
+    { "id": 1, "name": "Priya Sharma", "email": "priya@deskhub.in", "password": "demo123", "role": "admin" },
+    { "id": 2, "name": "Aarav Mehta", "email": "aarav@deskhub.in", "password": "demo123", "role": "agent" },
+    { "id": 3, "name": "Riya Patel", "email": "riya@deskhub.in", "password": "demo123", "role": "agent" },
+    { "id": 4, "name": "Anaya Singh", "email": "anaya@deskhub.in", "password": "demo123", "role": "agent" },
+    { "id": 5, "name": "Kabir Khan", "email": "kabir@deskhub.in", "password": "demo123", "role": "agent" }
+  ],
+  "tickets": [],
+  "comments": []
+}
