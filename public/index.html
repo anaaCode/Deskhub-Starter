@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskHub — Login</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body data-page="login">
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <h1 class="auth-logo">DeskHub</h1>
+      <p class="auth-sub">Support Ticket Dashboard</p>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="you@deskhub.in" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+
+        <div id="login-error" class="error-msg" hidden></div>
+
+        <button id="login-submit" type="submit" class="btn btn-primary btn-full">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>
