@@ -1,8 +1,8 @@
 import { listTickets, listUsers } from "../api/tickets.js";
 import { formatDate } from "../utils/formatDate.js";
 import { debounce } from "../utils/debounce.js";
-import { isAuthenticated } from "../api/auth.js";
-import { getCurrentUser } from "../api/auth.js";
+import { isAuthenticated, getCurrentUser } from "../api/auth.js";
+import { isLocalAvailable } from "../api/client.js";
 
 let usersCache = [];
 
@@ -20,6 +20,11 @@ const state = {
 
 export async function initTicketsList() {
   if (!isAuthenticated()) { window.location.href = "index.html"; return; }
+
+  // Show demo banner when running without json-server
+  const local = await isLocalAvailable();
+  const banner = document.getElementById("demo-banner");
+  if (banner && !local) banner.hidden = false;
 
   // Show logged-in user
   const userEl = document.getElementById("topbar-user");

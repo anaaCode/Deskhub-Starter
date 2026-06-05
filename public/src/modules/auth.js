@@ -1,6 +1,13 @@
 import * as authApi from "../api/auth.js";
+import { isLocalAvailable } from "../api/client.js";
 
 export function initLogin() {
+  // Show demo credentials hint when json-server is not running
+  isLocalAvailable().then(local => {
+    const hint = document.getElementById("demo-hint");
+    if (hint && !local) hint.style.display = "block";
+  });
+
   const form      = document.getElementById("login-form");
   const submitBtn = document.getElementById("login-submit");
   const errorDiv  = document.getElementById("login-error");

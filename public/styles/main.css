@@ -299,3 +299,19 @@ body[data-page="login"] {
   .col-category, .col-date { display: none; }
   .app-main { padding: 1rem; }
 }
+
+/* ─── HIDDEN ATTRIBUTE FIX ──────────────── */
+/* Ensure [hidden] always wins, even on flex containers */
+[hidden] { display: none !important; }
+
+/* ─── DEMO BANNER ─────────────────────── */
+.demo-banner {
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #92400e;
+  font-size: .82rem;
+  padding: .45rem 1.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+.demo-banner strong { color: #78350f; }
