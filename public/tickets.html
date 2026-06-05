@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskHub — Tickets</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body data-page="tickets-list">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">DeskHub</span>
+      <nav class="topbar-nav">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="tickets.html" class="nav-link active">Tickets</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span id="topbar-user" class="topbar-user"></span>
+      <button id="logout-btn" class="btn btn-ghost">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Support Tickets</h1>
+        <p class="page-sub" id="tickets-count">—</p>
+      </div>
+    </div>
+
+    <!-- Filters bar -->
+    <div class="filters-bar">
+      <div class="filters-left">
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="search-input" type="search" placeholder="Search tickets…" class="search-input" autocomplete="off" />
+        </div>
+
+        <select id="status-filter" class="filter-select">
+          <option value="">All Statuses</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+
+        <select id="priority-filter" class="filter-select">
+          <option value="">All Priorities</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        <select id="assignee-filter" class="filter-select">
+          <option value="">All Agents</option>
+        </select>
+
+        <select id="sort-select" class="filter-select">
+          <option value="createdAt">Newest First</option>
+          <option value="updatedAt">Recently Updated</option>
+          <option value="priority">Priority</option>
+          <option value="status">Status</option>
+          <option value="id">ID</option>
+        </select>
+      </div>
+
+      <button id="reset-filters" class="btn btn-reset" title="Clear all filters">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.91"/></svg>
+        Reset
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading-state" class="state-overlay" hidden>
+      <div class="spinner"></div>
+      <p>Loading tickets…</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="error-state" hidden>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p class="error-msg-text">Could not load tickets.</p>
+      <button id="retry-btn" class="btn btn-primary">Retry</button>
+    </div>
+
+    <!-- Tickets table -->
+    <div class="table-wrap">
+      <table class="tickets-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
+            <th class="col-title">Title</th>
+            <th class="col-customer">Customer</th>
+            <th class="col-priority">Priority</th>
+            <th class="col-status">Status</th>
+            <th class="col-category">Category</th>
+            <th class="col-assignee">Assignee</th>
+            <th class="col-date">Created</th>
+          </tr>
+        </thead>
+        <tbody id="tickets-tbody">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="pagination"></div>
+
+  </main>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

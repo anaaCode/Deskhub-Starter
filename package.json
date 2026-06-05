@@ -6,7 +6,8 @@
   "scripts": {
     "api": "json-server --watch db.json --port 3001 --delay 200",
     "serve": "live-server public --port=8080 --no-browser",
-    "dev": "concurrently --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"npm:api\" \"npm:serve\""
+    "dev": "concurrently --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"npm:api\" \"npm:serve\"",
+    "build": "node scripts/build.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

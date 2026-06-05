@@ -6,6 +6,24 @@ A lightweight Help Desk / Ticket Management application built using **HTML, CSS,
 
 👉 [Deskhub Starter](https://anaacode.github.io/Deskhub-Starter/)
 
+## Deploy to GitHub Pages
+
+This repo is configured to deploy automatically with GitHub Actions.
+
+1. Commit and push your changes to the `main` branch.
+2. In GitHub, open the repository settings.
+3. Go to **Pages**.
+4. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+5. Wait for the **Deploy to GitHub Pages** workflow to finish.
+
+The workflow runs `npm run build`, publishes the generated `dist/` folder, and serves the app from:
+
+```text
+https://anaacode.github.io/Deskhub-Starter/
+```
+
+GitHub Pages is static hosting, so the deployed app uses `db.json` as browser-side demo data instead of running `json-server`.
+
 
 ---
 

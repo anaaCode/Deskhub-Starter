@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- <meta http-equiv="refresh" content="0; url=public/index.html"> -->
+  <title>DeskHub — Login</title>
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body data-page="login">
+
+  <div class="page-wrapper">
+    <div class="login-box">
+
+      <div class="left-panel">
+        <div class="pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Trusted by 500+ teams
+        </div>
+        <h1 class="brand">DeskHub</h1>
+        <p class="tagline">Your support team's command centre. Manage tickets, track issues, delight customers.</p>
+        <ul class="features">
+          <li>✦ Real-time ticket management</li>
+          <li>✦ Multi-agent collaboration</li>
+          <li>✦ Insightful analytics</li>
+        </ul>
+      </div>
+
+      <div class="right-panel">
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-sub">Sign in to your DeskHub account</p>
+
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="you@deskhub.in" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+
+          <div id="login-error" class="error-msg" hidden></div>
+
+          <button id="login-submit" type="submit" class="btn-signin">Sign in</button>
+        </form>
+<!-- 
+        <p class="hint">Demo: <span>priya@deskhub.in</span> / demo123</p> -->
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

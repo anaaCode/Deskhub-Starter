@@ -9,15 +9,27 @@
 <body data-page="dashboard">
 
   <header class="topbar">
-    <span class="topbar-logo">DeskHub</span>
-    <button id="logout-btn" class="btn btn-ghost">Logout</button>
+    <div class="topbar-left">
+      <span class="topbar-logo">DeskHub</span>
+      <nav class="topbar-nav">
+        <a href="dashboard.html" class="nav-link active">Dashboard</a>
+        <a href="tickets.html" class="nav-link">Tickets</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <button id="logout-btn" class="btn btn-ghost">Logout</button>
+    </div>
   </header>
 
-  <main class="main-content">
-    <h2>You're in! 🎉</h2>
-    <p>Dashboard coming on Day 29.</p>
+  <main class="app-main">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">You're in! 🎉</h1>
+        <p class="page-sub">Dashboard coming on Day 32. Head to <a href="tickets.html" style="color:var(--indigo)">Tickets</a> to see live data.</p>
+      </div>
+    </div>
   </main>
 
-  <script type="module" src="../src/main.js"></script>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
