@@ -13,7 +13,7 @@
       <span class="topbar-logo">DeskHub</span>
       <nav class="topbar-nav">
         <a href="dashboard.html" class="nav-link">Dashboard</a>
-        <a href="tickets.html" class="nav-link active">Tickets</a>
+        <a href="tickets.html"   class="nav-link active">Tickets</a>
       </nav>
     </div>
     <div class="topbar-right">
@@ -22,9 +22,8 @@
     </div>
   </header>
 
-  <!-- Demo mode banner: shown automatically when on GitHub Pages -->
   <div id="demo-banner" class="demo-banner" hidden>
-    📋 <strong>Demo mode</strong> — running on static data (json-server not available). Login with <strong>priya@deskhub.in</strong> / <strong>demo123</strong>
+    📋 <strong>Demo mode</strong> — running on static data. Login: <strong>priya@deskhub.in</strong> / <strong>demo123</strong>
   </div>
 
   <main class="app-main">
@@ -34,16 +33,16 @@
         <h1 class="page-title">Support Tickets</h1>
         <p class="page-sub" id="tickets-count">—</p>
       </div>
+      <button id="new-ticket-btn" class="btn btn-primary">+ New Ticket</button>
     </div>
 
-    <!-- Filters bar -->
+    <!-- Filters -->
     <div class="filters-bar">
       <div class="filters-left">
         <div class="search-wrap">
           <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="search-input" type="search" placeholder="Search tickets…" class="search-input" autocomplete="off" />
         </div>
-
         <select id="status-filter" class="filter-select">
           <option value="">All Statuses</option>
           <option value="open">Open</option>
@@ -51,7 +50,6 @@
           <option value="resolved">Resolved</option>
           <option value="closed">Closed</option>
         </select>
-
         <select id="priority-filter" class="filter-select">
           <option value="">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -59,11 +57,9 @@
           <option value="medium">Medium</option>
           <option value="low">Low</option>
         </select>
-
         <select id="assignee-filter" class="filter-select">
           <option value="">All Agents</option>
         </select>
-
         <select id="sort-select" class="filter-select">
           <option value="createdAt">Newest First</option>
           <option value="updatedAt">Recently Updated</option>
@@ -72,27 +68,22 @@
           <option value="id">ID</option>
         </select>
       </div>
-
       <button id="reset-filters" class="btn btn-reset" title="Clear all filters">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.91"/></svg>
         Reset
       </button>
     </div>
 
-    <!-- Loading state -->
     <div id="loading-state" class="state-overlay" hidden>
-      <div class="spinner"></div>
-      <p>Loading tickets…</p>
+      <div class="spinner"></div><p>Loading tickets…</p>
     </div>
 
-    <!-- Error state -->
     <div id="error-state" class="error-state" hidden>
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <p class="error-msg-text">Could not load tickets.</p>
       <button id="retry-btn" class="btn btn-primary">Retry</button>
     </div>
 
-    <!-- Tickets table -->
     <div class="table-wrap">
       <table class="tickets-table">
         <thead>
@@ -105,18 +96,100 @@
             <th class="col-category">Category</th>
             <th class="col-assignee">Assignee</th>
             <th class="col-date">Created</th>
+            <th class="col-actions">Actions</th>
           </tr>
         </thead>
-        <tbody id="tickets-tbody">
-        </tbody>
+        <tbody id="tickets-tbody"></tbody>
       </table>
     </div>
 
-    <!-- Pagination -->
     <div id="pagination" class="pagination"></div>
 
   </main>
 
+  <!-- ── New Ticket Modal ──────────────────────────────────── -->
+  <div id="new-ticket-backdrop" class="modal-backdrop" hidden>
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">New Ticket</h2>
+        <button id="new-modal-close" class="modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="create-form" novalidate>
+          <div class="form-group">
+            <label for="f-title" class="form-label">Title <span class="required">*</span></label>
+            <input id="f-title" name="title" type="text" class="form-input" placeholder="Brief summary of the issue" />
+            <span id="err-title" class="field-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="f-description" class="form-label">Description <span class="required">*</span></label>
+            <textarea id="f-description" name="description" class="form-input form-textarea" rows="4" placeholder="Detailed description of the issue"></textarea>
+            <span id="err-description" class="field-error"></span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-customerName" class="form-label">Customer Name <span class="required">*</span></label>
+              <input id="f-customerName" name="customerName" type="text" class="form-input" placeholder="Full name" />
+              <span id="err-customerName" class="field-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="f-customerEmail" class="form-label">Customer Email <span class="required">*</span></label>
+              <input id="f-customerEmail" name="customerEmail" type="email" class="form-input" placeholder="email@example.com" />
+              <span id="err-customerEmail" class="field-error"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-priority" class="form-label">Priority <span class="required">*</span></label>
+              <select id="f-priority" name="priority" class="form-input">
+                <option value="">Select priority…</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <span id="err-priority" class="field-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="f-category" class="form-label">Category <span class="required">*</span></label>
+              <select id="f-category" name="category" class="form-input">
+                <option value="">Select category…</option>
+                <option value="billing">Billing</option>
+                <option value="technical">Technical</option>
+                <option value="general">General</option>
+                <option value="feature-request">Feature Request</option>
+                <option value="bug">Bug</option>
+              </select>
+              <span id="err-category" class="field-error"></span>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button id="new-modal-cancel" class="btn btn-ghost">Cancel</button>
+        <button id="new-modal-submit" class="btn btn-primary">Create Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Confirm Dialog ────────────────────────────────────── -->
+  <div id="confirm-backdrop" class="modal-backdrop" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="confirm-title" class="modal-title">Confirm</h2>
+        <button id="confirm-close" class="modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message" class="confirm-msg"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-cancel" class="btn btn-ghost">Cancel</button>
+        <button id="confirm-ok"     class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

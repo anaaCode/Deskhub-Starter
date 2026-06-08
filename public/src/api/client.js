@@ -2,20 +2,27 @@ import { get as getStored } from "../utils/storage.js";
 
 const LOCAL_URL = "http://localhost:3001";
 
-// Detect at startup whether json-server is reachable.
-// We cache the result so we only probe once per page load.
-let _useLocal = null;
+let _probePromise = null;
 
-export async function isLocalAvailable() {
-  if (_useLocal !== null) return _useLocal;
-  try {
-    const res = await fetch(LOCAL_URL + "/users?_limit=1", { signal: AbortSignal.timeout(1500) });
-    _useLocal = res.ok;
-  } catch {
-    _useLocal = false;
-  }
-  return _useLocal;
+// Probe immediately on module load so result is ready before login fires
+function probe() {
+  if (_probePromise) return _probePromise;
+  _probePromise = (async () => {
+    try {
+      const ctrl  = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 800);
+      const res   = await fetch(LOCAL_URL + "/users?_limit=1", { signal: ctrl.signal });
+      clearTimeout(timer);
+      return res.ok;
+    } catch {
+      return false;
+    }
+  })();
+  return _probePromise;
 }
+probe(); // kick off immediately
+
+export const isLocalAvailable = () => probe();
 
 export async function request(path, options = {}) {
   try {

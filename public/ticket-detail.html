@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeskHub — Ticket</title>
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body data-page="ticket-detail">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">DeskHub</span>
+      <nav class="topbar-nav">
+        <a href="dashboard.html" class="nav-link">Dashboard</a>
+        <a href="tickets.html"   class="nav-link">Tickets</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span id="topbar-user" class="topbar-user"></span>
+      <button id="logout-btn" class="btn btn-ghost">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Loading -->
+    <div id="detail-loading" class="state-overlay">
+      <div class="spinner"></div>
+      <p>Loading ticket…</p>
+    </div>
+
+    <!-- Error -->
+    <div id="detail-error" hidden>
+      <div class="error-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p class="error-msg-text" id="detail-error-msg">Could not load ticket.</p>
+        <a href="tickets.html" class="btn btn-primary">← Back to Tickets</a>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="detail-content" hidden>
+
+      <div class="detail-topbar">
+        <a href="tickets.html" class="btn btn-ghost btn-sm">← Back to Tickets</a>
+        <div class="detail-actions">
+          <button id="edit-btn"   class="btn btn-secondary btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit Ticket
+          </button>
+          <button id="delete-btn" class="btn btn-danger btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-layout">
+
+        <!-- Left: ticket info + comments -->
+        <div class="detail-main">
+          <div class="detail-card">
+            <div class="detail-meta-row">
+              <span id="detail-id"             class="detail-ticket-id"></span>
+              <span id="detail-status-badge"   class="badge"></span>
+              <span id="detail-priority-badge" class="badge"></span>
+            </div>
+            <h1 id="detail-title"       class="detail-title"></h1>
+            <p  id="detail-description" class="detail-description"></p>
+          </div>
+
+          <!-- Comments -->
+          <div class="detail-card">
+            <h2 class="detail-section-title">Comments</h2>
+            <div id="comments-list"></div>
+            <div class="comment-form">
+              <textarea id="comment-input" class="comment-textarea"
+                placeholder="Add a comment… (Ctrl+Enter to post)" rows="3"></textarea>
+              <div class="comment-form-footer">
+                <span class="comment-hint">Ctrl+Enter to submit</span>
+                <button id="comment-submit" class="btn btn-primary btn-sm">Post Comment</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: sidebar -->
+        <aside class="detail-sidebar">
+          <div class="detail-card">
+            <h3 class="sidebar-section-title">Properties</h3>
+
+            <div class="sidebar-field">
+              <label class="sidebar-label">Status</label>
+              <select id="status-select" class="filter-select sidebar-select">
+                <option value="open">Open</option>
+                <option value="in-progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div class="sidebar-field">
+              <label class="sidebar-label">Priority</label>
+              <select id="priority-select" class="filter-select sidebar-select">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            <div class="sidebar-field">
+              <label class="sidebar-label">Assignee</label>
+              <select id="assignee-select" class="filter-select sidebar-select">
+                <option value="">Unassigned</option>
+              </select>
+            </div>
+
+            <div class="sidebar-divider"></div>
+
+            <div class="sidebar-field">
+              <label class="sidebar-label">Category</label>
+              <span id="detail-category" class="sidebar-value"></span>
+            </div>
+            <div class="sidebar-field">
+              <label class="sidebar-label">Customer</label>
+              <span id="detail-customer" class="sidebar-value"></span>
+            </div>
+            <div class="sidebar-field">
+              <label class="sidebar-label">Email</label>
+              <span id="detail-email" class="sidebar-value sidebar-email"></span>
+            </div>
+            <div class="sidebar-field">
+              <label class="sidebar-label">Created</label>
+              <span id="detail-created" class="sidebar-value"></span>
+            </div>
+            <div class="sidebar-field">
+              <label class="sidebar-label">Last Updated</label>
+              <span id="detail-updated" class="sidebar-value"></span>
+            </div>
+          </div>
+        </aside>
+
+      </div><!-- /detail-layout -->
+    </div><!-- /detail-content -->
+
+  </main>
+
+  <!-- ── Edit Ticket Modal ─────────────────────────────────── -->
+  <div id="edit-modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Ticket</h2>
+        <button id="edit-modal-close" class="modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-form" novalidate>
+          <div class="form-group">
+            <label for="ef-title" class="form-label">Title <span class="required">*</span></label>
+            <input id="ef-title" name="title" type="text" class="form-input" />
+            <span id="err-title" class="field-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="ef-description" class="form-label">Description <span class="required">*</span></label>
+            <textarea id="ef-description" name="description" class="form-input form-textarea" rows="4"></textarea>
+            <span id="err-description" class="field-error"></span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ef-customerName" class="form-label">Customer Name <span class="required">*</span></label>
+              <input id="ef-customerName" name="customerName" type="text" class="form-input" />
+              <span id="err-customerName" class="field-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="ef-customerEmail" class="form-label">Customer Email <span class="required">*</span></label>
+              <input id="ef-customerEmail" name="customerEmail" type="email" class="form-input" />
+              <span id="err-customerEmail" class="field-error"></span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ef-priority" class="form-label">Priority <span class="required">*</span></label>
+              <select id="ef-priority" name="priority" class="form-input">
+                <option value="">Select…</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <span id="err-priority" class="field-error"></span>
+            </div>
+            <div class="form-group">
+              <label for="ef-category" class="form-label">Category <span class="required">*</span></label>
+              <select id="ef-category" name="category" class="form-input">
+                <option value="">Select…</option>
+                <option value="billing">Billing</option>
+                <option value="technical">Technical</option>
+                <option value="general">General</option>
+                <option value="feature-request">Feature Request</option>
+                <option value="bug">Bug</option>
+              </select>
+              <span id="err-category" class="field-error"></span>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button id="edit-modal-cancel" class="btn btn-ghost">Cancel</button>
+        <button id="edit-modal-submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Confirm Dialog ────────────────────────────────────── -->
+  <div id="confirm-backdrop" class="modal-backdrop" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="confirm-title" class="modal-title">Confirm</h2>
+        <button id="confirm-close" class="modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message" class="confirm-msg"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="confirm-cancel" class="btn btn-ghost">Cancel</button>
+        <button id="confirm-ok"     class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
