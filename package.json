@@ -7,11 +7,16 @@
     "api": "json-server --watch db.json --port 3001 --delay 200",
     "serve": "live-server public --port=8080 --no-browser",
     "dev": "concurrently --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"npm:api\" \"npm:serve\"",
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.8",
     "concurrently": "^8.2.2",
     "json-server": "^0.17.4",
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "vitest": "^4.1.8"
   }
 }

@@ -1,12 +1,19 @@
 /* ═══════════════════════════════════════════════════════════════
-   tickets.js  —  list · filters · pagination · new/edit/delete
+   tickets.js  —  list · filters · pagination · CRUD
+                  recycle bin · undo/redo · CSV export
    ═══════════════════════════════════════════════════════════════ */
-import { listTickets, listUsers, createTicket, deleteTicket } from "../api/tickets.js";
+import { listTickets, listUsers, createTicket, updateTicket, deleteTicket } from "../api/tickets.js";
 import { formatDate }           from "../utils/formatDate.js";
 import { debounce }             from "../utils/debounce.js";
 import { isAuthenticated, getCurrentUser } from "../api/auth.js";
 import { isLocalAvailable }     from "../api/client.js";
-import { showToast, openModal, closeModal, confirmDialog } from "./ui.js";
+import {
+  showToast, openModal, closeModal, confirmDialog,
+  showLoader, hideLoader,
+  showBootstrapLoader, hideBootstrapLoader,
+  initTheme, toggleTheme,
+  initKeyboardShortcuts, registerUndo, registerRedo,
+} from "./ui.js";
 import { validateForm, clearAllErrors, wireBlurValidation, TICKET_RULES } from "./form.js";
 
 let usersCache = [];
@@ -17,9 +24,37 @@ const state = {
   page: 1, limit: 10, total: 0,
 };
 
+/* ── RECYCLE BIN ────────────────────────────────────────────────
+   Deleted tickets stored in-session for optimistic restore. */
+const recycleBin = [];   // [{ ticket, deletedAt }]
+
+/* ── UNDO / REDO STACK ──────────────────────────────────────────
+   Simple operation stack (create / delete / update). */
+const undoStack = [];
+const redoStack = [];
+
+function pushUndo(op) {
+  undoStack.push(op);
+  redoStack.length = 0;   // clear redo on new action
+  updateUndoRedoUI();
+}
+
+function updateUndoRedoUI() {
+  const undoBtn = document.getElementById("undo-btn");
+  const redoBtn = document.getElementById("redo-btn");
+  if (undoBtn) undoBtn.disabled = !undoStack.length;
+  if (redoBtn) redoBtn.disabled = !redoStack.length;
+}
+
 /* ── boot ───────────────────────────────────────────────────── */
 export async function initTicketsList() {
   if (!isAuthenticated()) { window.location.href = "index.html"; return; }
+
+  // Init theme first
+  initTheme();
+
+  // Bootstrap loader
+  showBootstrapLoader();
 
   const local  = await isLocalAvailable();
   const banner = document.getElementById("demo-banner");
@@ -27,6 +62,9 @@ export async function initTicketsList() {
 
   const userEl = document.getElementById("topbar-user");
   if (userEl) { const u = getCurrentUser(); if (u) userEl.textContent = u.name; }
+
+  // Dark mode toggle
+  document.getElementById("theme-toggle")?.addEventListener("click", toggleTheme);
 
   try {
     const raw    = await listUsers();
@@ -36,8 +74,22 @@ export async function initTicketsList() {
 
   bindFilters();
   wireNewTicketModal();
+  wireRecycleBin();
+  wireCSVExport();
+  wireUndoRedoButtons();
   readFiltersFromURL();
+
+  // Keyboard shortcuts
+  initKeyboardShortcuts({
+    onNewTicket:  () => document.getElementById("new-ticket-btn")?.click(),
+    onRecycleBin: () => document.getElementById("recycle-btn")?.click(),
+    onExportCSV:  exportCSV,
+  });
+  registerUndo(undoLast);
+  registerRedo(redoLast);
+
   await refresh();
+  setTimeout(hideBootstrapLoader, 200);
 }
 
 /* ── URL state ──────────────────────────────────────────────── */
@@ -92,6 +144,8 @@ function bindFilters() {
   g("assignee-filter")?.addEventListener("change",(e)=>{ state.assignee = e.target.value; resetAndRefresh(); });
   g("sort-select")?.addEventListener("change",  (e) => { state.sort     = e.target.value; resetAndRefresh(); });
   g("reset-filters")?.addEventListener("click", resetFilters);
+
+  window.addEventListener("popstate", () => { readFiltersFromURL(); refresh(); });
 }
 
 function resetFilters() {
@@ -108,9 +162,250 @@ function resetFilters() {
 
 function resetAndRefresh() { state.page = 1; refresh(); }
 
+/* ── CSV EXPORT ─────────────────────────────────────────────── */
+function wireCSVExport() {
+  document.getElementById("export-csv-btn")?.addEventListener("click", exportCSV);
+}
+
+async function exportCSV() {
+  showLoader("Exporting…");
+  try {
+    const params = {
+      _sort: state.sort, _order: state.order, _limit: 1000,
+    };
+    if (state.search)   params.q          = state.search;
+    if (state.status)   params.status     = state.status;
+    if (state.priority) params.priority   = state.priority;
+    if (state.assignee) params.assignedTo = state.assignee;
+
+    const { data } = await listTickets(params);
+    const rows     = data || [];
+
+    const headers = ["ID","Title","Customer","Email","Priority","Status","Category","Assignee","Created"];
+    const lines   = [headers.join(",")];
+
+    rows.forEach(t => {
+      const assignee = usersCache.find(u => String(u.id) === String(t.assignedTo));
+      const cells = [
+        t.id,
+        `"${(t.title       || "").replace(/"/g, '""')}"`,
+        `"${(t.customerName  || "").replace(/"/g, '""')}"`,
+        `"${(t.customerEmail || "").replace(/"/g, '""')}"`,
+        t.priority,
+        t.status,
+        t.category,
+        assignee ? `"${assignee.name}"` : "Unassigned",
+        formatDate(t.createdAt),
+      ];
+      lines.push(cells.join(","));
+    });
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `deskhub-tickets-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${rows.length} tickets`, "success");
+  } catch (err) {
+    showToast("Export failed: " + err.message, "error");
+  } finally {
+    hideLoader();
+  }
+}
+
+/* ── RECYCLE BIN ────────────────────────────────────────────── */
+function updateRecycleBadge() {
+  const badge = document.getElementById("recycle-badge");
+  if (badge) badge.textContent = recycleBin.length || "";
+  badge && (badge.hidden = !recycleBin.length);
+}
+
+function wireRecycleBin() {
+  const btn = document.getElementById("recycle-btn");
+  if (!btn) return;
+  btn.addEventListener("click", openRecycleBin);
+}
+
+function openRecycleBin() {
+  const backdropId = "recycle-backdrop";
+  let backdrop = document.getElementById(backdropId);
+
+  if (!backdrop) {
+    backdrop = document.createElement("div");
+    backdrop.id        = backdropId;
+    backdrop.className = "modal-backdrop";
+    backdrop.hidden    = true;
+    backdrop.innerHTML = `
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <h2 class="modal-title">🗑️ Recycle Bin</h2>
+          <button class="modal-close" aria-label="Close" id="recycle-close">×</button>
+        </div>
+        <div class="modal-body" id="recycle-body"></div>
+      </div>`;
+    document.body.appendChild(backdrop);
+
+    document.getElementById("recycle-close").addEventListener("click", () => closeModal(backdropId));
+
+    // Confirm backdrop must be in DOM for confirmDialog
+    if (!document.getElementById("confirm-backdrop")) {
+      const cd = document.createElement("div");
+      cd.id        = "confirm-backdrop";
+      cd.className = "modal-backdrop";
+      cd.hidden    = true;
+      cd.innerHTML = `
+        <div class="modal modal-sm">
+          <div class="modal-header">
+            <h2 id="confirm-title" class="modal-title">Confirm</h2>
+            <button id="confirm-close" class="modal-close">×</button>
+          </div>
+          <div class="modal-body"><p id="confirm-message" class="confirm-msg"></p></div>
+          <div class="modal-footer">
+            <button id="confirm-cancel" class="btn btn-ghost">Cancel</button>
+            <button id="confirm-ok"     class="btn btn-danger">Delete</button>
+          </div>
+        </div>`;
+      document.body.appendChild(cd);
+    }
+  }
+
+  renderRecycleBin();
+  openModal(backdropId);
+}
+
+function renderRecycleBin() {
+  const body = document.getElementById("recycle-body");
+  if (!body) return;
+
+  if (!recycleBin.length) {
+    body.innerHTML = `<p class="recycle-empty">Recycle bin is empty.</p>`;
+    return;
+  }
+
+  body.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  [...recycleBin].reverse().forEach((entry, revIdx) => {
+    const idx  = recycleBin.length - 1 - revIdx;
+    const item = document.createElement("div");
+    item.className = "recycle-item";
+    item.innerHTML = `
+      <div class="recycle-info">
+        <div class="recycle-title"></div>
+        <div class="recycle-meta">#${entry.ticket.id} · deleted ${formatDate(entry.deletedAt)}</div>
+      </div>
+      <div class="recycle-actions">
+        <button class="btn btn-secondary btn-sm restore-btn">Restore</button>
+        <button class="btn btn-danger btn-sm perm-btn">Delete Permanently</button>
+      </div>`;
+    item.querySelector(".recycle-title").textContent = entry.ticket.title;
+
+    item.querySelector(".restore-btn").addEventListener("click", async () => {
+      await restoreTicket(idx);
+    });
+    item.querySelector(".perm-btn").addEventListener("click", async () => {
+      const yes = await confirmDialog("Permanent Delete", `Permanently delete "${entry.ticket.title}"? This cannot be undone.`, true);
+      if (!yes) return;
+      recycleBin.splice(idx, 1);
+      updateRecycleBadge();
+      renderRecycleBin();
+      showToast("Permanently deleted", "info");
+    });
+
+    frag.appendChild(item);
+  });
+  body.appendChild(frag);
+}
+
+async function restoreTicket(idx) {
+  const entry = recycleBin[idx];
+  if (!entry) return;
+
+  showLoader("Restoring…");
+  try {
+    // Restore with original id so references remain intact
+    const body = {
+      ...entry.ticket,
+      updatedAt: new Date().toISOString(),
+    };
+    await createTicket(body);
+    recycleBin.splice(idx, 1);
+    updateRecycleBadge();
+    renderRecycleBin();
+    showToast("Ticket restored!", "success");
+    closeModal("recycle-backdrop");
+    await refresh();
+  } catch (err) {
+    showToast("Restore failed: " + err.message, "error");
+  } finally {
+    hideLoader();
+  }
+}
+
+/* ── UNDO / REDO ────────────────────────────────────────────── */
+async function undoLast() {
+  if (!undoStack.length) { showToast("Nothing to undo", "info"); return; }
+  const op = undoStack.pop();
+  redoStack.push(op);
+  updateUndoRedoUI();
+
+  showLoader("Undoing…");
+  try {
+    if (op.type === "create") {
+      await deleteTicket(op.ticket.id);
+      showToast("Create undone", "info");
+    } else if (op.type === "delete") {
+      const { id: _id, ...body } = op.ticket;
+      await createTicket({ ...body, updatedAt: new Date().toISOString() });
+      showToast("Delete undone — ticket restored", "success");
+    } else if (op.type === "update") {
+      await updateTicket(op.ticket.id, op.before);
+      showToast("Edit undone", "info");
+    }
+    await refresh();
+  } catch (err) {
+    showToast("Undo failed: " + err.message, "error");
+  } finally {
+    hideLoader();
+  }
+}
+
+async function redoLast() {
+  if (!redoStack.length) { showToast("Nothing to redo", "info"); return; }
+  const op = redoStack.pop();
+  undoStack.push(op);
+  updateUndoRedoUI();
+
+  showLoader("Redoing…");
+  try {
+    if (op.type === "create") {
+      await createTicket(op.ticket);
+      showToast("Create redone", "success");
+    } else if (op.type === "delete") {
+      await deleteTicket(op.ticket.id);
+      showToast("Delete redone", "info");
+    } else if (op.type === "update") {
+      await updateTicket(op.ticket.id, op.after);
+      showToast("Edit redone", "success");
+    }
+    await refresh();
+  } catch (err) {
+    showToast("Redo failed: " + err.message, "error");
+  } finally {
+    hideLoader();
+  }
+}
+
+function wireUndoRedoButtons() {
+  document.getElementById("undo-btn")?.addEventListener("click", undoLast);
+  document.getElementById("redo-btn")?.addEventListener("click", redoLast);
+  updateUndoRedoUI();
+}
+
 /* ── New Ticket modal ───────────────────────────────────────── */
 function wireNewTicketModal() {
-  const form      = document.getElementById("create-form");
+  const form = document.getElementById("create-form");
   if (!form) return;
 
   document.getElementById("new-ticket-btn")?.addEventListener("click", () => {
@@ -130,7 +425,7 @@ function wireNewTicketModal() {
     const btn = document.getElementById("new-modal-submit");
     btn.disabled = true; btn.textContent = "Creating…";
     try {
-      await createTicket({
+      const ticketBody = {
         title:         form.elements["title"].value.trim(),
         description:   form.elements["description"].value.trim(),
         customerName:  form.elements["customerName"].value.trim(),
@@ -141,7 +436,9 @@ function wireNewTicketModal() {
         assignedTo:    null,
         createdAt:     new Date().toISOString(),
         updatedAt:     new Date().toISOString(),
-      });
+      };
+      const created = await createTicket(ticketBody);
+      pushUndo({ type: "create", ticket: created });
       closeModal("new-ticket-backdrop");
       showToast("Ticket created!", "success");
       state.page = 1;
@@ -222,27 +519,35 @@ function renderTable(tickets) {
       </td>
     `;
 
-    // XSS-safe textContent fills
-    tr.querySelector(".ticket-link").textContent              = t.title;
-    tr.querySelector(".col-customer").textContent             = t.customerName;
-    tr.querySelector(".priority-" + t.priority).textContent  = t.priority;
-    tr.querySelector(".status-"   + t.status).textContent    = t.status.replace("-", " ");
-    tr.querySelector(".category-tag").textContent             = t.category;
-    tr.querySelector(".col-assignee").textContent             = assignee ? assignee.name : "Unassigned";
-    tr.querySelector(".col-date").textContent                 = formatDate(t.createdAt);
+    tr.querySelector(".ticket-link").textContent             = t.title;
+    tr.querySelector(".col-customer").textContent            = t.customerName;
+    tr.querySelector(".priority-" + t.priority).textContent = t.priority;
+    tr.querySelector(".status-"   + t.status).textContent   = t.status.replace("-", " ");
+    tr.querySelector(".category-tag").textContent            = t.category;
+    tr.querySelector(".col-assignee").textContent            = assignee ? assignee.name : "Unassigned";
+    tr.querySelector(".col-date").textContent                = formatDate(t.createdAt);
 
-    // Inline delete
     tr.querySelector(".row-action-delete").addEventListener("click", async (e) => {
       e.preventDefault();
       const id  = e.currentTarget.dataset.id;
       const yes = await confirmDialog("Delete Ticket",
-        `Delete ticket #${id} "${t.title}"? This cannot be undone.`, true);
+        `Delete ticket #${id} "${t.title}"? You can restore it from the Recycle Bin.`, true);
       if (!yes) return;
+
+      // Optimistic removal from DOM
+      tr.style.transition = "opacity .2s";
+      tr.style.opacity    = "0";
+
       try {
         await deleteTicket(id);
-        showToast("Ticket deleted", "success");
+        // Move to recycle bin
+        recycleBin.push({ ticket: t, deletedAt: new Date().toISOString() });
+        updateRecycleBadge();
+        pushUndo({ type: "delete", ticket: t });
+        showToast("Ticket deleted — restore via Recycle Bin", "info");
         await refresh();
       } catch (err) {
+        tr.style.opacity = "1";
         showToast("Delete failed: " + err.message, "error");
       }
     });

@@ -1,9 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════
    dashboard.js  —  stat cards · recent 5 tickets
    ═══════════════════════════════════════════════════════════════ */
-import { listTickets }   from "../api/tickets.js";
+import { listTickets }    from "../api/tickets.js";
 import { getCurrentUser } from "../api/auth.js";
-import { formatDate }    from "../utils/formatDate.js";
+import { formatDate }     from "../utils/formatDate.js";
+import {
+  showBootstrapLoader, hideBootstrapLoader,
+  initTheme, toggleTheme,
+  initKeyboardShortcuts,
+} from "./ui.js";
 
 const PRIORITY_CLS = { urgent:"priority-urgent", high:"priority-high", medium:"priority-medium", low:"priority-low" };
 const STATUS_CLS   = { open:"status-open", "in-progress":"status-in-progress", resolved:"status-resolved", closed:"status-closed" };
@@ -16,13 +21,19 @@ async function fetchCount(params) {
 }
 
 export async function initDashboard() {
+  initTheme();
+  showBootstrapLoader();
+
   const user = getCurrentUser();
   const greeting = document.getElementById("user-greeting");
   if (greeting && user) greeting.textContent = `Welcome back, ${user.name}!`;
 
-  // Show user in topbar
   const topbarUser = document.getElementById("topbar-user");
   if (topbarUser && user) topbarUser.textContent = user.name;
+
+  document.getElementById("theme-toggle")?.addEventListener("click", toggleTheme);
+
+  initKeyboardShortcuts({});
 
   // 4 parallel stat fetches
   const [total, open, inProgress, resolved] = await Promise.all([
@@ -37,7 +48,6 @@ export async function initDashboard() {
   document.getElementById("stat-inprogress").textContent = inProgress;
   document.getElementById("stat-resolved").textContent   = resolved;
 
-  // Recent 5 tickets
   const loadingEl = document.getElementById("recent-loading");
   const errorEl   = document.getElementById("recent-error");
   const tableWrap = document.getElementById("recent-table-wrap");
@@ -78,5 +88,7 @@ export async function initDashboard() {
     console.error(err);
     loadingEl.hidden = true;
     errorEl.style.display = "block";
+  } finally {
+    setTimeout(hideBootstrapLoader, 200);
   }
 }

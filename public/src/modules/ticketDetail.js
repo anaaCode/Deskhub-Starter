@@ -1,34 +1,59 @@
 /* ═══════════════════════════════════════════════════════════════
    ticketDetail.js  —  load · render · edit · comments · delete
+                       sidebar locked until Edit clicked
    ═══════════════════════════════════════════════════════════════ */
 import { getTicket, updateTicket, deleteTicket,
          listComments, addComment, listUsers }   from "../api/tickets.js";
 import { isAuthenticated, getCurrentUser }        from "../api/auth.js";
 import { formatDate, formatDateTime, formatRelative } from "../utils/formatDate.js";
-import { showToast, openModal, closeModal, confirmDialog } from "./ui.js";
+import {
+  showToast, openModal, closeModal, confirmDialog,
+  showBootstrapLoader, hideBootstrapLoader,
+  showLoader, hideLoader,
+  initTheme, toggleTheme,
+  initKeyboardShortcuts,
+} from "./ui.js";
 import { validateForm, clearAllErrors,
          wireBlurValidation, TICKET_RULES }       from "./form.js";
 
-/* ── maps ───────────────────────────────────────────────────── */
 const PRIORITY_CLS = { urgent:"priority-urgent", high:"priority-high",
                        medium:"priority-medium", low:"priority-low" };
 const STATUS_CLS   = { open:"status-open", "in-progress":"status-in-progress",
                        resolved:"status-resolved", closed:"status-closed" };
 
-/* ── module state ───────────────────────────────────────────── */
-let ticketId     = null;
-let current      = null;   // live ticket object
-let usersMap     = {};     // id → name
-let usersList    = [];
+let ticketId  = null;
+let current   = null;
+let usersMap  = {};
+let usersList = [];
 
-/* ── tiny helpers ───────────────────────────────────────────── */
-const $  = (id) => document.getElementById(id);
-const el = (id) => document.getElementById(id); // alias for readability
+const $ = (id) => document.getElementById(id);
 
 function showSection(which) {
   $("detail-loading").hidden = which !== "loading";
   $("detail-error").hidden   = which !== "error";
   $("detail-content").hidden = which !== "content";
+}
+
+/* ── sidebar lock ────────────────────────────────────────────── */
+let sidebarLocked = true;
+
+function setSidebarLocked(locked) {
+  sidebarLocked = locked;
+  const sidebar = document.querySelector(".detail-sidebar");
+  if (!sidebar) return;
+  if (locked) {
+    sidebar.classList.add("sidebar-locked");
+    const note = sidebar.querySelector(".edit-lock-note");
+    if (!note) {
+      const n = document.createElement("span");
+      n.className   = "edit-lock-note";
+      n.textContent = "Click Edit Ticket to make changes";
+      sidebar.querySelector(".detail-card")?.appendChild(n);
+    }
+  } else {
+    sidebar.classList.remove("sidebar-locked");
+    sidebar.querySelector(".edit-lock-note")?.remove();
+  }
 }
 
 /* ── render ticket ──────────────────────────────────────────── */
@@ -56,13 +81,11 @@ function renderTicket(t) {
   $("status-select").value   = t.status;
   $("priority-select").value = t.priority;
 
-  // Rebuild assignee options
   const sel = $("assignee-select");
   sel.innerHTML = `<option value="">Unassigned</option>`;
   usersList.forEach(u => {
     const o = document.createElement("option");
-    o.value = u.id;
-    o.textContent = u.name;
+    o.value = u.id; o.textContent = u.name;
     if (String(u.id) === String(t.assignedTo)) o.selected = true;
     sel.appendChild(o);
   });
@@ -70,11 +93,15 @@ function renderTicket(t) {
 
 /* ── PATCH one field ────────────────────────────────────────── */
 async function patchField(field, value) {
+  if (sidebarLocked) {
+    showToast("Click Edit Ticket to make changes", "info");
+    return false;
+  }
   try {
     const updatedAt = new Date().toISOString();
     await updateTicket(ticketId, { [field]: value, updatedAt });
     $("detail-updated").textContent = formatDateTime(updatedAt);
-    current[field]  = value;
+    current[field]    = value;
     current.updatedAt = updatedAt;
     showToast(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`, "success");
     return true;
@@ -97,7 +124,7 @@ function renderComments(comments) {
   comments.forEach(c => {
     const div    = document.createElement("div");
     div.className = "comment-item";
-    const author = usersMap[c.authorId] || c.authorName || "Agent";
+    const author   = usersMap[c.authorId] || c.authorName || "Agent";
     const initials = author.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
 
     div.innerHTML = `
@@ -123,7 +150,6 @@ function renderComments(comments) {
   list.appendChild(frag);
 }
 
-/* ── load / reload comments ─────────────────────────────────── */
 async function loadComments() {
   try {
     const raw      = await listComments(ticketId);
@@ -135,7 +161,6 @@ async function loadComments() {
   }
 }
 
-/* ── post a comment ─────────────────────────────────────────── */
 async function postComment() {
   const input = $("comment-input");
   const btn   = $("comment-submit");
@@ -170,8 +195,10 @@ function wireEditModal() {
   if (!editBtn || !$("edit-form")) return;
 
   editBtn.addEventListener("click", () => {
+    // Unlock sidebar whenever edit modal is opened
+    setSidebarLocked(false);
+
     const form = $("edit-form");
-    // Pre-fill with current values
     form.elements["title"].value         = current.title         ?? "";
     form.elements["description"].value   = current.description   ?? "";
     form.elements["customerName"].value  = current.customerName  ?? "";
@@ -207,7 +234,6 @@ function wireEditModal() {
       await updateTicket(ticketId, body);
       closeModal("edit-modal-backdrop");
       showToast("Ticket updated!", "success");
-      // Re-fetch + re-render so all UI reflects saved values
       const fresh = await getTicket(ticketId);
       const t = Array.isArray(fresh) ? fresh[0] : (fresh?.data ?? fresh);
       renderTicket(t);
@@ -224,29 +250,31 @@ function wireEditModal() {
 export async function initTicketDetail() {
   if (!isAuthenticated()) { window.location.href = "index.html"; return; }
 
-  // Show user in topbar
+  initTheme();
+  showBootstrapLoader();
+
   const user = getCurrentUser();
   if ($("topbar-user") && user) $("topbar-user").textContent = user.name;
 
-  // Read ?id=N
+  document.getElementById("theme-toggle")?.addEventListener("click", toggleTheme);
+
   ticketId = new URLSearchParams(location.search).get("id");
   if (!ticketId) {
     $("detail-error-msg").textContent = "No ticket ID in URL.";
     showSection("error");
+    hideBootstrapLoader();
     return;
   }
 
   showSection("loading");
 
   try {
-    // Parallel fetch — ticket + comments + users
     const [ticketRaw, commentsRaw, usersRaw] = await Promise.all([
       getTicket(ticketId),
       listComments(ticketId),
       listUsers(),
     ]);
 
-    // Normalise (json-server returns plain obj; mock may differ)
     const ticket   = Array.isArray(ticketRaw)   ? ticketRaw[0]  : (ticketRaw?.data   ?? ticketRaw);
     const comments = Array.isArray(commentsRaw) ? commentsRaw   : (commentsRaw?.data  ?? []);
     const users    = Array.isArray(usersRaw)    ? usersRaw      : (usersRaw?.data     ?? []);
@@ -258,47 +286,49 @@ export async function initTicketDetail() {
     renderComments(comments);
     showSection("content");
 
-    /* ── sidebar property selects ──────────────────────────── */
+    // Sidebar locked by default — unlock only via Edit
+    setSidebarLocked(true);
+
+    /* ── sidebar selects — only work when unlocked ──────── */
     $("status-select").addEventListener("change", async (e) => {
+      if (sidebarLocked) { e.target.value = current.status; showToast("Click Edit Ticket to make changes", "info"); return; }
       const val = e.target.value;
       const ok  = await patchField("status", val);
       if (ok) {
         const b = $("detail-status-badge");
         b.textContent = val.replace("-"," ");
         b.className   = `badge ${STATUS_CLS[val] || ""}`;
-      } else {
-        e.target.value = current.status;
-      }
+      } else { e.target.value = current.status; }
     });
 
     $("priority-select").addEventListener("change", async (e) => {
+      if (sidebarLocked) { e.target.value = current.priority; showToast("Click Edit Ticket to make changes", "info"); return; }
       const val = e.target.value;
       const ok  = await patchField("priority", val);
       if (ok) {
         const b = $("detail-priority-badge");
         b.textContent = val;
         b.className   = `badge ${PRIORITY_CLS[val] || ""}`;
-      } else {
-        e.target.value = current.priority;
-      }
+      } else { e.target.value = current.priority; }
     });
 
     $("assignee-select").addEventListener("change", async (e) => {
+      if (sidebarLocked) { e.target.value = current.assignedTo ?? ""; showToast("Click Edit Ticket to make changes", "info"); return; }
       const val = e.target.value ? Number(e.target.value) : null;
       const ok  = await patchField("assignedTo", val);
       if (!ok) e.target.value = current.assignedTo ?? "";
     });
 
-    /* ── comments ───────────────────────────────────────────── */
+    /* ── comments ───────────────────────────────────────── */
     $("comment-submit").addEventListener("click", postComment);
     $("comment-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) postComment();
     });
 
-    /* ── edit modal ─────────────────────────────────────────── */
+    /* ── edit modal ──────────────────────────────────────── */
     wireEditModal();
 
-    /* ── delete ─────────────────────────────────────────────── */
+    /* ── delete ──────────────────────────────────────────── */
     $("delete-btn").addEventListener("click", async () => {
       const yes = await confirmDialog(
         "Delete Ticket",
@@ -306,18 +336,25 @@ export async function initTicketDetail() {
         true
       );
       if (!yes) return;
+      showLoader("Deleting…");
       try {
         await deleteTicket(ticketId);
         showToast("Ticket deleted", "success");
         setTimeout(() => { window.location.href = "tickets.html"; }, 900);
       } catch (err) {
         showToast("Delete failed: " + err.message, "error");
+        hideLoader();
       }
     });
+
+    /* ── keyboard shortcuts ──────────────────────────────── */
+    initKeyboardShortcuts({});
 
   } catch (err) {
     console.error(err);
     $("detail-error-msg").textContent = "Could not load ticket: " + err.message;
     showSection("error");
+  } finally {
+    setTimeout(hideBootstrapLoader, 200);
   }
 }

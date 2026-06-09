@@ -1,16 +1,15 @@
 import * as authApi from "../api/auth.js";
-import { isLocalAvailable } from "../api/client.js";
 
 export function initLogin() {
-  // Show demo credentials hint when json-server is not running
-  isLocalAvailable().then(local => {
-    const hint = document.getElementById("demo-hint");
-    if (hint && !local) hint.style.display = "block";
-  });
-
   const form      = document.getElementById("login-form");
   const submitBtn = document.getElementById("login-submit");
   const errorDiv  = document.getElementById("login-error");
+
+  // Already authenticated? go to dashboard
+  if (authApi.isAuthenticated()) {
+    window.location.href = "dashboard.html";
+    return;
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -18,8 +17,8 @@ export function initLogin() {
     const password = form.password.value;
 
     errorDiv.textContent = "";
-    errorDiv.hidden      = true;
-    submitBtn.disabled   = true;
+    errorDiv.classList.add("hidden");
+    submitBtn.disabled    = true;
     submitBtn.textContent = "Signing in…";
 
     try {
@@ -27,7 +26,7 @@ export function initLogin() {
       window.location.href = "dashboard.html";
     } catch (err) {
       errorDiv.textContent = err.message;
-      errorDiv.hidden      = false;
+      errorDiv.classList.remove("hidden");
     } finally {
       submitBtn.disabled    = false;
       submitBtn.textContent = "Sign in";
@@ -47,5 +46,13 @@ export function initLogout(selector = "#logout-btn") {
 export function requireAuth() {
   if (!authApi.isAuthenticated()) {
     window.location.href = "index.html";
+    return false;
   }
+  return true;
+}
+
+export function showCurrentUser() {
+  const user = authApi.getCurrentUser();
+  const el   = document.getElementById("user-name");
+  if (el && user) el.textContent = user.name;
 }

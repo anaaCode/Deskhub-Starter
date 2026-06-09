@@ -24,7 +24,7 @@ export function initLogin() {
 
     try {
       await authApi.login(email, password);
-      window.location.href = "tickets.html";
+      window.location.href = "dashboard.html";
     } catch (err) {
       errorDiv.textContent = err.message;
       errorDiv.hidden      = false;

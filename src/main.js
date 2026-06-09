@@ -1,19 +1,16 @@
 import { initLogin, initLogout, requireAuth } from "./modules/auth.js";
-import { getCurrentUser } from "./api/auth.js";
-import { initTicketsList } from "./modules/tickets.js";
+import { initTicketsList }  from "./modules/tickets.js";
 import { initTicketDetail } from "./modules/ticketDetail.js";
-import { initDashboard } from "./modules/dashboard.js";
+import { initDashboard }    from "./modules/dashboard.js";
+import { initTheme }        from "./modules/ui.js";
 
-window.onerror = (msg, src, line, col, err) => {
-  console.error("Unhandled error:", err || msg);
-};
+window.onerror = (msg, src, line, col, err) => console.error("Unhandled:", err || msg);
+
+// Apply theme immediately to avoid flash
+initTheme();
 
 try {
   const page = document.body.dataset.page;
-
-  // Wire logout button (present on most pages)
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn) initLogout();
 
   switch (page) {
     case "login":
@@ -22,28 +19,24 @@ try {
 
     case "dashboard":
       requireAuth();
+      initLogout();
       initDashboard();
       break;
 
     case "tickets-list":
-      requireAuth();
       initTicketsList();
+      initLogout();
       break;
 
     case "ticket-detail":
       requireAuth();
+      initLogout();
       initTicketDetail();
       break;
 
     default:
       if (page) console.warn("Unknown page:", page);
   }
-
-  // Show current user in topbar where present
-  const user = getCurrentUser();
-  const topbarUser = document.getElementById("topbar-user");
-  if (topbarUser && user) topbarUser.textContent = user.name;
-
 } catch (err) {
   console.error("Boot error:", err);
 }
