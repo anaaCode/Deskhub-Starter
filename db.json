@@ -371,7 +371,7 @@
       "customerEmail": "manish@trading.in",
       "assignedTo": 2,
       "createdAt": "2026-05-07T07:55:00Z",
-      "updatedAt": "2026-06-09T16:09:21.496Z",
+      "updatedAt": "2026-06-09T17:44:21.970Z",
       "description": "When users enter valid login credentials and click the Login/Submit button, the application does not navigate to the intended dashboard or home page. Instead, it redirects back to the login page, creating a login loop."
     }
   ],
